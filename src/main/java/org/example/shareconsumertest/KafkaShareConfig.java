@@ -8,8 +8,11 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.boot.kafka.autoconfigure.KafkaConnectionDetails;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.config.ShareKafkaListenerContainerFactory;
 import org.springframework.kafka.config.TopicBuilder;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultShareConsumerFactory;
 import org.springframework.kafka.core.ShareConsumerFactory;
 
@@ -33,14 +36,33 @@ public class KafkaShareConfig {
     public static final String TOPIC = "share-consumer-demo";
     public static final String GROUP = "share-consumer-demo-group";
 
-    /** Auto-created on startup by the auto-configured {@code KafkaAdmin}. */
+    /**
+     * Auto-created on startup by the auto-configured {@code KafkaAdmin}.
+     */
     @Bean
     public NewTopic shareTopic() {
-        return TopicBuilder.name(TOPIC)
+        return TopicBuilder.name("y1" + TOPIC)
                 .partitions(2)
                 .replicas(1)
                 .build();
     }
+
+    @Bean
+    public NewTopic shareTopic1() {
+        return TopicBuilder.name("y2" + TOPIC)
+                .partitions(2)
+                .replicas(1)
+                .build();
+    }
+    @Bean
+    public NewTopic shareTopic3() {
+        return TopicBuilder.name("y3" + TOPIC)
+                .partitions(2)
+                .replicas(1)
+                .build();
+    }
+
+
 
     /**
      * Factory that builds {@link org.apache.kafka.clients.consumer.ShareConsumer}
@@ -57,6 +79,16 @@ public class KafkaShareConfig {
         return new DefaultShareConsumerFactory<>(props, new StringDeserializer(), new StringDeserializer(), false);
     }
 
+    @Bean
+    public ConsumerFactory<String, String> consumerFactory(KafkaConnectionDetails connectionDetails) {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                String.join(",", connectionDetails.getBootstrapServers()));
+        // Deserializers are passed explicitly, so tell the factory not to configure its own.
+        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new StringDeserializer(), false);
+    }
+
+
     /**
      * Container factory referenced by {@code @KafkaListener(containerFactory = ...)}.
      * It produces {@link org.springframework.kafka.listener.ShareKafkaMessageListenerContainer}
@@ -67,4 +99,13 @@ public class KafkaShareConfig {
             ShareConsumerFactory<String, String> shareConsumerFactory) {
         return new ShareKafkaListenerContainerFactory<>(shareConsumerFactory);
     }
+
+    @Bean("concurrentKafkaListenerContainerFactory")
+    public ConcurrentKafkaListenerContainerFactory<String, String> concurrentKafkaListenerContainerFactory(
+            ConsumerFactory<String, String> shareConsumerFactory) {
+        ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(shareConsumerFactory);
+        return factory;
+    }
+
 }

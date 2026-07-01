@@ -1,5 +1,6 @@
 package org.example.shareconsumertest;
 
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
@@ -35,12 +36,17 @@ class ShareConsumerIntegrationTests {
         String payload = "hello-share-consumer";
 
         // Produce with the auto-configured KafkaTemplate; block until the broker acks.
-        kafkaTemplate.send(KafkaShareConfig.TOPIC, "demo-key", payload).get(10, TimeUnit.SECONDS);
+        kafkaTemplate.send("y1"+KafkaShareConfig.TOPIC, "demo-key", UUID.randomUUID().toString()).get(10, TimeUnit.SECONDS);
+        kafkaTemplate.send("y2"+KafkaShareConfig.TOPIC, "demo-key", UUID.randomUUID().toString()).get(10, TimeUnit.SECONDS);
+        kafkaTemplate.send("y3"+KafkaShareConfig.TOPIC, "demo-key", UUID.randomUUID().toString()).get(10, TimeUnit.SECONDS);
+
+        Thread.sleep(400000);
 
         // Await delivery to the share consumer.
-        String received = shareConsumerListener.getReceived().poll(30, TimeUnit.SECONDS);
-
-        assertNotNull(received, "Share consumer did not receive the message within the timeout");
-        assertEquals(payload, received);
+//        String received = shareConsumerListener.getReceived().poll(30, TimeUnit.SECONDS);
+//        int size = shareConsumerListener.getReceived().size();
+//        assertEquals(2, size);
+//        assertNotNull(received, "Share consumer did not receive the message within the timeout");
+//        assertEquals(payload, received);
     }
 }

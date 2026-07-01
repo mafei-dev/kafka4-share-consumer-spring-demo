@@ -19,8 +19,20 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class OrderSaga {
 
-    @SagaListener(value = "order", containerFactory = "shareKafkaListenerContainerFactory", concurrency = "10")
+    @SagaListener(topicPrefix = "y1", value = "order-1", containerFactory = "shareKafkaListenerContainerFactory", concurrency = "10")
     public void onEvent(String payload) {
-        log.info("OrderSaga handled event: {}", payload);
+        log.info("y1:OrderSaga handled event: {}", payload);
     }
+
+    @SagaListener(topicPrefix = "y2", value = "order-2", containerFactory = "shareKafkaListenerContainerFactory", concurrency = "10")
+    public void onEvent1(String payload) {
+        log.info("y2:OrderSaga handled event: {}", payload);
+    }
+
+    @SagaListener(topicPrefix = "y3", value = "order-3", containerFactory = "concurrentKafkaListenerContainerFactory", concurrency = "10")
+    public void onEvent2(String payload) {
+        log.info("y3:OrderSaga handled event: {}", payload);
+    }
+
+
 }

@@ -37,6 +37,14 @@ public @interface SagaListener {
     String value();
 
     /**
+     * Prefix prepended to the framework's base topic to form the topic this listener
+     * subscribes to (final topic = {@code topicPrefix + KafkaShareConfig.TOPIC}). Empty
+     * means no prefix, i.e. just the framework's base topic. Lets a developer namespace
+     * the topic (e.g. per tenant/environment) while the framework still owns the rest.
+     */
+    String topicPrefix() default "";
+
+    /**
      * Bean name of the {@link org.springframework.kafka.config.KafkaListenerContainerFactory}
      * to use, mirroring {@code @KafkaListener#containerFactory}. Empty means the framework
      * default ({@code "shareKafkaListenerContainerFactory"}). Only a

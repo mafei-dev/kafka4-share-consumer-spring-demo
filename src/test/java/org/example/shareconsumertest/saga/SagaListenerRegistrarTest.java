@@ -6,6 +6,7 @@ import java.util.regex.Pattern;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.example.shareconsumertest.KafkaShareConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -47,12 +48,22 @@ class SagaListenerRegistrarTest {
             KafkaListenerEndpointRegistry registry = context.getBean(KafkaListenerEndpointRegistry.class);
 
             // Endpoint id is "saga-" + the annotation's value (see SagaListenerRegistrar).
-            assertThat(registry.getListenerContainer("saga-shareOrder"))
+            MessageListenerContainer shareContainer = registry.getListenerContainer("saga-shareOrder");
+            MessageListenerContainer concurrentContainer = registry.getListenerContainer("saga-concurrentOrder");
+
+            assertThat(shareContainer)
                     .as("listener bound to a ShareKafkaListenerContainerFactory")
                     .isNotNull();
-            assertThat(registry.getListenerContainer("saga-concurrentOrder"))
+            assertThat(concurrentContainer)
                     .as("listener bound to a ConcurrentKafkaListenerContainerFactory")
                     .isNotNull();
+
+            // The share listener declared topicPrefix = "tenant-a." -> prefix + base topic.
+            assertThat(shareContainer.getContainerProperties().getTopics())
+                    .containsExactly("tenant-a." + KafkaShareConfig.TOPIC);
+            // The concurrent listener declared no prefix -> just the base topic.
+            assertThat(concurrentContainer.getContainerProperties().getTopics())
+                    .containsExactly(KafkaShareConfig.TOPIC);
         }
     }
 
@@ -113,7 +124,7 @@ class SagaListenerRegistrarTest {
     }
 
     static class SupportedSagas {
-        @SagaListener(value = "shareOrder", containerFactory = "shareFactory")
+        @SagaListener(value = "shareOrder", containerFactory = "shareFactory", topicPrefix = "tenant-a.")
         void onShare(String payload) {
         }
 

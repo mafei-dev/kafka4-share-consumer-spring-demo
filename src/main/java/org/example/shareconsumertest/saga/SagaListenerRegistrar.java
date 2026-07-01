@@ -93,12 +93,13 @@ public class SagaListenerRegistrar implements KafkaListenerConfigurer {
                                   Object bean, Method method, SagaListener sagaListener) {
         String saga = sagaListener.value();
 
+        // Topic = developer-supplied prefix + framework's base topic; group is framework-owned.
+        String topic = sagaListener.topicPrefix() + KafkaShareConfig.TOPIC;
+
         MethodKafkaListenerEndpoint<String, String> endpoint = new MethodKafkaListenerEndpoint<>();
         endpoint.setId("saga-" + saga);
-        // --- topic & group are chosen by the framework, not by the annotation ---
         endpoint.setGroupId(KafkaShareConfig.GROUP + "-" + saga);
-        endpoint.setTopics(KafkaShareConfig.TOPIC);
-        // -----------------------------------------------------------------------
+        endpoint.setTopics(topic);
         endpoint.setBean(bean);
         endpoint.setMethod(method);
         endpoint.setMessageHandlerMethodFactory(messageHandlerMethodFactory);
@@ -116,10 +117,15 @@ public class SagaListenerRegistrar implements KafkaListenerConfigurer {
         // --- container factory comes from the annotation (blank = framework default) ---
         KafkaListenerContainerFactory<?> factory = resolveContainerFactory(sagaListener);
 
+        // A share container invokes the share-specific listener contract, so the endpoint must
+        // build a ShareRecordMessagingMessageListenerAdapter. This flag drives that choice;
+        // without it the classic adapter throws "Container should never call this" at runtime.
+        endpoint.setShareConsumer(factory instanceof ShareKafkaListenerContainerFactory);
+
         registrar.registerEndpoint(endpoint, factory);
 
         log.info("Registered @SagaListener '{}' -> topic '{}', group '{}', factory '{}', concurrency '{}' on {}#{}",
-                saga, KafkaShareConfig.TOPIC, endpoint.getGroupId(),
+                saga, topic, endpoint.getGroupId(),
                 factoryBeanName(sagaListener), concurrency.isBlank() ? "<default>" : concurrency,
                 bean.getClass().getSimpleName(), method.getName());
     }
